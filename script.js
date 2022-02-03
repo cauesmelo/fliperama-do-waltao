@@ -119,22 +119,21 @@ const calculateDeltaTime = () => {
 // =======BREAKOUT CODE
 // ===Classe da bolinha
 class Ball {
-  constructor(x, y, ctx) {
-    this.x = x;
-    this.y = y;
+  constructor() {
+    this.x = 0;
+    this.y = 0;
     this.height = 10;
     this.width = 10;
-    this.ctx = ctx;
     this.velocityX = 0;
     this.velocityY = 0;
   }
 
   draw() {
-    this.ctx.beginPath();
-    this.ctx.rect(this.x, this.y, this.width, this.height);
-    this.ctx.fillStyle = primaryColor;
-    this.ctx.fill();
-    this.ctx.closePath();
+    ctx.beginPath();
+    ctx.rect(this.x, this.y, this.width, this.height);
+    ctx.fillStyle = primaryColor;
+    ctx.fill();
+    ctx.closePath();
   }
 
   move() {
@@ -147,7 +146,7 @@ class Ball {
       return;
     }
 
-    checkCollisionWithBricks();
+    this.checkCollisionWithBricks();
 
     if (this.x <= 0) {
       this.velocityX *= -1;
@@ -180,13 +179,17 @@ class Ball {
         var b = bricks.bricks[c][r];
         if (!b.destroyed) {
           if (
-            x > b.x &&
-            x < b.x + brickWidth &&
-            y > b.y &&
-            y < b.y + brickHeight
+            this.x > b.x &&
+            this.x < b.x + bricks.width &&
+            this.y > b.y &&
+            this.y < b.y + bricks.height
           ) {
-            dy = -dy;
+            this.velocityY *= -1;
             b.destroyed = true;
+            score += 10;
+            bricks.brickCount--;
+
+            if (bricks.brickCount === 0) isGameWin = true;
           }
         }
       }
@@ -224,21 +227,20 @@ class Ball {
 
 // ===Classe da raquete
 class Paddle {
-  constructor(x, y, ctx) {
-    this.x = x;
-    this.y = y;
+  constructor() {
+    this.x = windowWidth / 2;
+    this.y = windowHeight - 10;
     this.height = 10;
     this.width = 70;
-    this.ctx = ctx;
   }
 
   // Desenha o Paddle na tela
   draw() {
-    this.ctx.beginPath();
-    this.ctx.rect(this.x, this.y, this.width, this.height);
-    this.ctx.fillStyle = primaryColor;
-    this.ctx.fill();
-    this.ctx.closePath();
+    ctx.beginPath();
+    ctx.rect(this.x, this.y, this.width, this.height);
+    ctx.fillStyle = primaryColor;
+    ctx.fill();
+    ctx.closePath();
   }
 
   // Move para esquerda, sempre multiplicando pela delta time para
@@ -253,14 +255,6 @@ class Paddle {
   }
 }
 
-var brickRowCount = 3;
-var brickColumnCount = 5;
-var brickWidth = 75;
-var brickHeight = 20;
-var brickPadding = 10;
-var brickOffsetTop = 30;
-var brickOffsetLeft = 30;
-
 // ===Classe de brick
 class Bricks {
   constructor() {
@@ -269,6 +263,7 @@ class Bricks {
     this.width = 70;
     this.height = 20;
     this.bricks = [];
+    this.brickCount = 15;
 
     for (let c = 0; c < this.columns; c++) {
       this.bricks[c] = [];
@@ -298,9 +293,19 @@ class Bricks {
 }
 
 // Cria objetos
-const ball = new Ball(180, 160, ctx);
-const paddle = new Paddle(windowWidth / 2, windowHeight - 10, ctx);
-const bricks = new Bricks();
+let ball = new Ball();
+let paddle = new Paddle();
+let bricks = new Bricks();
+
+const restartBreakout = () => {
+  paddle = new Paddle();
+  bricks = new Bricks();
+  score = 0;
+  spacePressed = false;
+  isGameOver = false;
+  isGameStarted = false;
+  isGameWin = false;
+};
 
 // Gameloop do breakout
 const breakoutGameLoop = () => {
@@ -313,9 +318,18 @@ const breakoutGameLoop = () => {
     );
 
     if (spacePressed) {
-      spacePressed = false;
-      isGameOver = false;
-      isGameStarted = false;
+      restartBreakout();
+    }
+  } else if (isGameWin) {
+    write("Você ganhou! :D", canvas.width / 2, canvas.height / 2, 16);
+    write(
+      "Pressione espaço para jogar novamente",
+      canvas.width / 2,
+      canvas.height / 2 + 30
+    );
+
+    if (spacePressed) {
+      restartBreakout();
     }
   } else {
     if (rightPressed) {
