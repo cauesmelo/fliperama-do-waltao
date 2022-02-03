@@ -6,7 +6,7 @@ const windowWidth = 480;
 
 // ====Código compartilhado
 // Estado geral
-let selectedGame = "Breakout";
+let selectedGame = "Corona Invaders";
 let isGameOver = false;
 let isGameWin = false;
 let isGameStarted = false;
@@ -400,9 +400,7 @@ const breakoutGameLoop = () => {
   writeLeft("Score:" + score, 10, 30, 15);
 };
 
-// =======CORONA INVADERS CODE
 // =======SNAKE CODE
-
 // Snake constants
 const maxWidthGridSnake = 45;
 const maxHeightGridSnake = 25;
@@ -634,6 +632,157 @@ const snakeGameLoop = () => {
     snake.draw();
   }
 };
+
+// =======CORONA INVADERS CODE
+// Load assets
+let coronaSprite = new Image();
+let syringeSprite = new Image();
+coronaSprite.src = "assets/coronga.png";
+syringeSprite.src = "assets/syringe.png";
+
+// Corona class
+// Mantenha o distanciamento dessa classe e use máscara!
+class Corona {
+  constructor() {
+    this.rows = 4;
+    this.columns = 15;
+    this.coronas = [];
+    this.coronaCount = [];
+    this.width = 16;
+    this.height = 16;
+
+    // Crio um array de covid, bem aglomerado do jeitinho q ele gosta
+    for (let c = 0; c < this.columns; c++) {
+      this.coronas[c] = [];
+      for (let r = 0; r < this.rows; r++) {
+        this.coronas[c][r] = { x: 0, y: 0 };
+      }
+    }
+  }
+
+  // a logica de desenho eh a mesma dos tijolinhos pro breakout
+  // vou percorrendo por todos os covids e desenhado-os em tela
+  draw() {
+    for (let c = 0; c < this.columns; c++) {
+      for (let r = 0; r < this.rows; r++) {
+        if (!this.coronas[c][r].destroyed) {
+          let coronaX = c * (this.width + 10) + 50;
+          let coronaY = r * (this.height + 10) + 30;
+          this.coronas[c][r].x = coronaX;
+          this.coronas[c][r].y = coronaY;
+          ctx.drawImage(
+            coronaSprite,
+            coronaX,
+            coronaY,
+            this.width,
+            this.height
+          );
+        }
+      }
+    }
+  }
+}
+
+// VACINE-SE, TOME A DOSE DE REFORÇO ASSIM QUE POSSIVEL
+// VACINAS SALVAM VIDAS
+class Syringe {
+  constructor() {
+    this.x = windowWidth / 2;
+    this.y = windowHeight - 42;
+    this.height = 32;
+    this.width = 32;
+  }
+
+  // Desenha o Paddle na tela
+  draw() {
+    ctx.drawImage(syringeSprite, this.x, this.y, this.width, this.height);
+  }
+
+  // Move para esquerda, sempre multiplicando pela delta time para
+  // não haver diferença de velocidade com mudança de fps
+  moveLeft() {
+    if (this.x > 0) this.x -= 5 * deltaTime;
+  }
+
+  // Move para direita
+  moveRight() {
+    if (this.x < windowWidth - this.width) this.x += 5 * deltaTime;
+  }
+}
+
+// instancia objetos pro jogo
+let coronas = new Corona();
+let syringe = new Syringe();
+
+// codigo para reiniciar o jogo
+const restartCorona = () => {
+  coronas = new Corona();
+  syringe = new syringe();
+  score = 0;
+  spacePressed = false;
+  isGameOver = false;
+  isGameStarted = false;
+  isGameWin = false;
+};
+
+const coronaGameLoop = () => {
+  // se game over, moostra mensagem e da opcao para restartar
+  if (isGameOver) {
+    write("Você perdeu :(", canvas.width / 2, canvas.height / 2, 16);
+    write(
+      "Pressione espaço para reiniciar",
+      canvas.width / 2,
+      canvas.height / 2 + 30
+    );
+
+    if (spacePressed) {
+      restartCorona();
+    }
+
+    // se game win, mostra mensagem e da opção para restartar
+  } else if (isGameWin) {
+    write("Você ganhou! :D", canvas.width / 2, canvas.height / 2, 16);
+    write(
+      "Pressione espaço para jogar novamente",
+      canvas.width / 2,
+      canvas.height / 2 + 30
+    );
+
+    if (spacePressed) {
+      restartCorona();
+    }
+
+    // se não, roda a lógica de jogo
+  } else {
+    if (!isGameStarted) {
+      write(
+        "Pressione espaço para começar",
+        canvas.width / 2,
+        canvas.height / 2 + 30,
+        12
+      );
+      coronas = new Corona();
+    }
+
+    if (rightPressed) {
+      syringe.moveRight();
+    }
+
+    if (leftPressed) {
+      syringe.moveLeft();
+    }
+
+    if (isGameStarted) {
+      // TODO
+    }
+
+    coronas.draw();
+    syringe.draw();
+  }
+
+  writeLeft("Score:" + score, 10, 20, 12);
+};
+
 // =======PONG 360 CODE
 // =======TIC TAC TOE CODE
 
@@ -649,7 +798,7 @@ const gameLoop = () => {
       breakoutGameLoop();
       break;
     case "Corona Invaders":
-      // TODO
+      coronaGameLoop();
       break;
     case "Snake":
       snakeGameLoop();
