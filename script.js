@@ -410,8 +410,8 @@ const maxHeightGridSnake = 25;
 class Apple {
   // iniciamos nossa maça em uma coordenada aleatoria
   constructor() {
-    this.x = randomBetween(0, maxHeightGridSnake);
-    this.y = randomBetween(0, maxWidthGridSnake);
+    this.x = randomBetween(0, maxWidthGridSnake);
+    this.y = randomBetween(0, maxHeightGridSnake);
   }
 
   // desenhamos nossa bela maça
@@ -421,6 +421,7 @@ class Apple {
     ctx.fillStyle = primaryColor;
     ctx.fill();
     ctx.closePath();
+    console.log("123", this.x, this.y);
   }
 }
 
@@ -513,7 +514,7 @@ class Snake {
   checkCollisionWithApple() {
     if (apple.x === this.x && apple.y === this.y) {
       score += 10;
-      apple.x = randomBetween(0, maxHeightGridSnake);
+      apple.x = randomBetween(0, maxWidthGridSnake);
       apple.y = randomBetween(0, maxHeightGridSnake);
       this.hasToGrow = true;
     }
@@ -548,14 +549,14 @@ let snake = new Snake();
 let apple = new Apple();
 
 // Desenho de jaula, score
-const drawScenario = () => {
+const drawSnakeScenario = () => {
   ctx.beginPath();
   ctx.rect(10, 50, windowWidth - 20, windowHeight - 60);
   ctx.strokeStyle = primaryColor;
   ctx.stroke();
   ctx.closePath();
 
-  if (isGameStarted) apple.draw();
+  if (isGameStarted && !isGameOver) apple.draw();
 
   writeLeft("Score:" + score, 15, 35, 15);
 };
@@ -575,7 +576,7 @@ const restartSnake = () => {
 
 // loop do jogo da cobrinha
 const snakeGameLoop = () => {
-  drawScenario();
+  drawSnakeScenario();
   timePassed += deltaTime;
 
   if (isGameOver) {
