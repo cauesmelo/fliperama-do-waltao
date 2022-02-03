@@ -13,15 +13,26 @@ let isGameStarted = false;
 let score = 0;
 
 // Handler de game select
-const handleChangeGame = (game) => (selectedGame = game);
+const handleChangeGame = (game) => {
+  selectedGame = game;
+  titleText.innerText = game;
+  isGameOver = false;
+  isGameWin = false;
+  isGameStarted = false;
+  score = 0;
+
+  // Da blur nos botões html para evitar que o espaço ative eles novamente
+  document.querySelectorAll("button").forEach((b) => b.blur());
+};
 
 // Pega canvas e contexto
 const canvas = document.getElementById("gameCanvas");
 canvas.width = windowWidth;
 canvas.height = windowHeight;
 const ctx = canvas.getContext("2d");
+const titleText = document.getElementById("gameTitle");
 
-// Helper para escrita em tela
+// Helpers para escrita em tela
 const write = (text, x, y, fontSize) => {
   if (fontSize) {
     ctx.font = `${fontSize}px 'Press Start 2P'`;
@@ -109,6 +120,12 @@ const keyUpHandler = (e) => {
 document.addEventListener("keydown", keyDownHandler, false);
 document.addEventListener("keyup", keyUpHandler, false);
 
+// Helper de RNG
+const randomBetween = (min, max) =>
+  Math.floor(Math.random() * (max - min + 1) + min);
+
+const randomBoolean = () => Math.random() > 0.5;
+
 // Função para calcular delta time
 const calculateDeltaTime = () => {
   let now = Date.now();
@@ -128,6 +145,7 @@ class Ball {
     this.velocityY = 0;
   }
 
+  // desenha bolota na tela
   draw() {
     ctx.beginPath();
     ctx.rect(this.x, this.y, this.width, this.height);
@@ -136,18 +154,16 @@ class Ball {
     ctx.closePath();
   }
 
+  // move bolota na tela
   move() {
     this.x += this.velocityX * deltaTime;
     this.y += this.velocityY * deltaTime;
 
-    if (this.checkCollisionWithPaddle()) {
-      this.velocityY *= -1;
-      this.increaseVelocity();
-      return;
-    }
-
+    // Checa e trata as colisões
+    this.checkCollisionWithPaddle();
     this.checkCollisionWithBricks();
 
+    // aqui é caso bater nos limites da tela jogar a bolinha no lado oposto
     if (this.x <= 0) {
       this.velocityX *= -1;
     }
@@ -160,19 +176,25 @@ class Ball {
       this.velocityY *= -1;
     }
 
+    // se bater no chão, é game over playboy
     if (this.y > windowHeight - this.height) {
       isGameOver = true;
     }
   }
 
+  // se colidir com raquete, joga pra cima e aumenta velocidade
   checkCollisionWithPaddle() {
     if (this.x >= paddle.x && this.x <= paddle.x + paddle.width) {
       if (this.y >= paddle.y - this.height) {
+        this.velocityY *= -1;
+        this.increaseVelocity();
         return true;
       }
     }
   }
 
+  // se colidir com os tijolinhos, anota como destruido, aumenta escore
+  // e joga bolota na velocidade oposta
   checkCollisionWithBricks() {
     for (var c = 0; c < bricks.columns; c++) {
       for (var r = 0; r < bricks.rows; r++) {
@@ -189,6 +211,7 @@ class Ball {
             score += 10;
             bricks.brickCount--;
 
+            // se não sobrar mais tijolinhos, é game win baby
             if (bricks.brickCount === 0) isGameWin = true;
           }
         }
@@ -196,6 +219,7 @@ class Ball {
     }
   }
 
+  // função para aumentar velocidade da bolota
   increaseVelocity() {
     this.velocityX += this.velocityX > 0 ? 0.1 : -0.1;
     this.velocityY += this.velocityY > 0 ? 0.1 : -0.1;
@@ -265,6 +289,7 @@ class Bricks {
     this.bricks = [];
     this.brickCount = 15;
 
+    // cria um array de tijolos
     for (let c = 0; c < this.columns; c++) {
       this.bricks[c] = [];
       for (let r = 0; r < this.rows; r++) {
@@ -273,6 +298,8 @@ class Bricks {
     }
   }
 
+  // função de desenho
+  // itera pelo array de tijolos desenhando eles na tela
   draw() {
     for (let c = 0; c < this.columns; c++) {
       for (let r = 0; r < this.rows; r++) {
@@ -297,6 +324,7 @@ let ball = new Ball();
 let paddle = new Paddle();
 let bricks = new Bricks();
 
+// reiniciar o jogo
 const restartBreakout = () => {
   paddle = new Paddle();
   bricks = new Bricks();
@@ -309,6 +337,7 @@ const restartBreakout = () => {
 
 // Gameloop do breakout
 const breakoutGameLoop = () => {
+  // se game over, moostra mensagem e da opcao para restartar
   if (isGameOver) {
     write("Você perdeu :(", canvas.width / 2, canvas.height / 2, 16);
     write(
@@ -320,6 +349,8 @@ const breakoutGameLoop = () => {
     if (spacePressed) {
       restartBreakout();
     }
+
+    // se game win, mostra mensagem e da opção para restartar
   } else if (isGameWin) {
     write("Você ganhou! :D", canvas.width / 2, canvas.height / 2, 16);
     write(
@@ -331,7 +362,19 @@ const breakoutGameLoop = () => {
     if (spacePressed) {
       restartBreakout();
     }
+
+    // se não, roda a lógica de jogo
   } else {
+    if (!isGameStarted) {
+      write(
+        "Pressione espaço para começar",
+        canvas.width / 2,
+        canvas.height / 2,
+        12
+      );
+      bricks = new Bricks();
+    }
+
     if (rightPressed) {
       paddle.moveRight();
     }
@@ -357,11 +400,221 @@ const breakoutGameLoop = () => {
   writeLeft("Score:" + score, 10, 30, 15);
 };
 
+// =======CORONA INVADERS CODE
+// =======SNAKE CODE
+
+// Snake constants
+const maxWidthGridSnake = 45;
+const maxHeightGridSnake = 25;
+
+class Apple {
+  // iniciamos nossa maça em uma coordenada aleatoria
+  constructor() {
+    this.x = randomBetween(0, maxHeightGridSnake);
+    this.y = randomBetween(0, maxWidthGridSnake);
+  }
+
+  // desenhamos nossa bela maça
+  draw() {
+    ctx.beginPath();
+    ctx.rect(this.x * 10 + 10, this.y * 10 + 50, 10, 10);
+    ctx.fillStyle = primaryColor;
+    ctx.fill();
+    ctx.closePath();
+  }
+}
+
+// Classe da cobrinha
+class Snake {
+  constructor() {
+    // guardamos aqui a cabeça
+    this.x = 5;
+    this.y = 5;
+    this.hasToGrow = false;
+
+    // e o corpinho salvamos em um array
+    this.body = [
+      { x: 5, y: 4 },
+      { x: 5, y: 3 },
+    ];
+
+    // aqui é para qual eixo a cobrinha vai se movimentar
+    this.velocityX = 0;
+    this.velocityY = 1;
+  }
+
+  draw() {
+    // desenhamos a cabeça da cobrinha
+    ctx.beginPath();
+    ctx.rect(this.x * 10 + 10, this.y * 10 + 50, 10, 10);
+    ctx.fillStyle = primaryColor;
+    ctx.fill();
+    ctx.closePath();
+
+    // iteramos pelo corpinho desenhando cada segmento
+    this.body.forEach((corpinho) => {
+      ctx.beginPath();
+      ctx.rect(corpinho.x * 10 + 10, corpinho.y * 10 + 50, 10, 10);
+      ctx.fillStyle = primaryColor;
+      ctx.fill();
+      ctx.closePath();
+    });
+  }
+
+  // move a cobrinha na tela
+  move() {
+    // guardamos as coordenadas para saber para onde devemos movimentar
+    // cada segmento do corpinho
+    let tempCoordinates = {
+      x: this.x,
+      y: this.y,
+    };
+
+    this.x += this.velocityX;
+    this.y += this.velocityY;
+
+    // checagem de colisão com a tela
+    this.checkCollisionWithScreen();
+
+    // checagem de colisao com a maça
+    this.checkCollisionWithApple();
+
+    this.body.forEach((corpinho) => {
+      let tempX = corpinho.x;
+      let tempY = corpinho.y;
+
+      corpinho.x = tempCoordinates.x;
+      corpinho.y = tempCoordinates.y;
+
+      tempCoordinates = {
+        x: tempX,
+        y: tempY,
+      };
+    });
+
+    if (this.hasToGrow) {
+      this.body.push(tempCoordinates);
+      this.hasToGrow = false;
+    }
+  }
+
+  // Checa e trata as colisões
+  checkCollisionWithScreen() {
+    if (
+      this.x > maxWidthGridSnake ||
+      this.x < 0 ||
+      this.y < 0 ||
+      this.y > maxHeightGridSnake
+    ) {
+      isGameOver = true;
+    }
+  }
+
+  checkCollisionWithApple() {
+    if (apple.x === this.x && apple.y === this.y) {
+      score += 10;
+      apple.x = randomBetween(0, maxHeightGridSnake);
+      apple.y = randomBetween(0, maxHeightGridSnake);
+      this.hasToGrow = true;
+    }
+  }
+}
+
+// Função para tratar os comandos para cobrinha
+const handleSnakeInput = () => {
+  if (leftPressed && snake.velocityX !== 1) {
+    snake.velocityX = -1;
+    snake.velocityY = 0;
+  }
+
+  if (upPressed && snake.velocityY !== 1) {
+    snake.velocityX = 0;
+    snake.velocityY = -1;
+  }
+
+  if (rightPressed && snake.velocityX !== -1) {
+    snake.velocityX = 1;
+    snake.velocityY = 0;
+  }
+
+  if (downPressed && snake.velocityY !== -1) {
+    snake.velocityX = 0;
+    snake.velocityY = 1;
+  }
+};
+
+// cria objetos
+let snake = new Snake();
+let apple = new Apple();
+
+// Desenho de jaula, score
+const drawScenario = () => {
+  ctx.beginPath();
+  ctx.rect(10, 50, windowWidth - 20, windowHeight - 60);
+  ctx.strokeStyle = primaryColor;
+  ctx.stroke();
+  ctx.closePath();
+
+  if (isGameStarted) apple.draw();
+
+  writeLeft("Score:" + score, 15, 35, 15);
+};
+
+// Guardamos tempo passado para saber quando atualizar nossa querida cobrinha
+let timePassed = 0;
+
+// função para reiniciar o jogo
+const restartSnake = () => {
+  snake = new Snake();
+  score = 0;
+  spacePressed = false;
+  isGameOver = false;
+  isGameStarted = true;
+  isGameWin = false;
+};
+
+// loop do jogo da cobrinha
+const snakeGameLoop = () => {
+  drawScenario();
+  timePassed += deltaTime;
+
+  if (isGameOver) {
+    write("Você perdeu :(", canvas.width / 2, canvas.height / 2, 16);
+    write(
+      "Pressione espaço para reiniciar",
+      canvas.width / 2,
+      canvas.height / 2 + 30
+    );
+
+    if (spacePressed) {
+      restartSnake();
+    }
+  } else if (!isGameStarted) {
+    write("Pressione espaço para iniciar", canvas.width / 2, canvas.height / 2);
+
+    if (spacePressed) {
+      restartSnake();
+    }
+  } else {
+    handleSnakeInput();
+
+    if (timePassed > 20) {
+      snake.move();
+      timePassed = 0;
+    }
+    snake.draw();
+  }
+};
+// =======PONG 360 CODE
+// =======TIC TAC TOE CODE
+
 // ===Game loop
 const gameLoop = () => {
+  // limpa tela e calcula delta time
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   calculateDeltaTime();
 
+  // de acordo com o jogo selecionado, executa um game loop específico
   switch (selectedGame) {
     case "Breakout":
       breakoutGameLoop();
@@ -370,7 +623,7 @@ const gameLoop = () => {
       // TODO
       break;
     case "Snake":
-      // TODO
+      snakeGameLoop();
       break;
     case "Pong 360":
       // TODO
