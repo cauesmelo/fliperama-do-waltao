@@ -17,19 +17,49 @@
     <h1>Fliperama do Waltão</h1>
 
     <div class="menuContainer">
-      <button class="button-54" role="button">Breakout</button>
-      <button class="button-54" role="button">Corona Invaders</button>
-      <button class="button-54" role="button">Snake</button>
-      <button class="button-54" role="button">Pong 360</button>
-      <button class="button-54" role="button">Tic-tac-toe</button>
+      <button
+        class="button-54"
+        role="button"
+        onclick="handleChangeGame('Breakout')"
+      >
+        Breakout
+      </button>
+      <button
+        class="button-54"
+        role="button"
+        onclick="handleChangeGame('Corona Invaders')"
+      >
+        Corona Invaders
+      </button>
+      <button
+        class="button-54"
+        role="button"
+        onclick="handleChangeGame('Snake')"
+      >
+        Snake
+      </button>
+      <button
+        class="button-54"
+        role="button"
+        onclick="handleChangeGame('Pong 360')"
+      >
+        Pong 360
+      </button>
+      <button
+        class="button-54"
+        role="button"
+        onclick="handleChangeGame('TicTacToe')"
+      >
+        Tic-tac-toe
+      </button>
     </div>
 
     <h2 id="gameTitle">Breakout</h2>
 
     <div class="gameContainer">
-      <canvas id="breakout" width="480" height="320"> </canvas>
+      <canvas id="gameCanvas"> </canvas>
     </div>
 
-    <script type="module" src="script.js"></script>
+    <script src="script.js"></script>
   </body>
 </html>
