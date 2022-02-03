@@ -431,6 +431,8 @@ class Snake {
     // guardamos aqui a cabeça
     this.x = 5;
     this.y = 5;
+
+    // Aqui é uma flag para sabermos quando a cobrinha está crescendo ou não
     this.hasToGrow = false;
 
     // e o corpinho salvamos em um array
@@ -442,6 +444,11 @@ class Snake {
     // aqui é para qual eixo a cobrinha vai se movimentar
     this.velocityX = 0;
     this.velocityY = 1;
+
+    // guardamos a ultima velocidade para que ela nao volte em direção ao seu
+    // corpinho
+    this.lastVelocityX = 0;
+    this.lastVelocityY = 1;
   }
 
   draw() {
@@ -474,11 +481,17 @@ class Snake {
     this.x += this.velocityX;
     this.y += this.velocityY;
 
+    this.lastVelocityX = this.velocityX;
+    this.lastVelocityY = this.velocityY;
+
     // checagem de colisão com a tela
     this.checkCollisionWithScreen();
 
     // checagem de colisao com a maça
     this.checkCollisionWithApple();
+
+    // checagem de colisao com o corpinho
+    this.checkCollisionWithSelf();
 
     this.body.forEach((corpinho) => {
       let tempX = corpinho.x;
@@ -519,26 +532,41 @@ class Snake {
       this.hasToGrow = true;
     }
   }
+
+  checkCollisionWithSelf() {
+    // se as coordenadas do corpinho foram as mesmas que a cabeça
+    // game over baby
+    this.body.forEach((corpinho) => {
+      if (corpinho.x === this.x && corpinho.y === this.y) {
+        isGameOver = true;
+      }
+    });
+  }
+
+  // Função para sabermos de uma nova velocidade é valida para a cobrinha
+  isNewVelocityValid(x, y) {
+    if (x !== this.lastVelocityX && y !== this.lastVelocityY) return true;
+  }
 }
 
 // Função para tratar os comandos para cobrinha
 const handleSnakeInput = () => {
-  if (leftPressed && snake.velocityX !== 1) {
+  if (leftPressed && snake.isNewVelocityValid(-1, 0)) {
     snake.velocityX = -1;
     snake.velocityY = 0;
   }
 
-  if (upPressed && snake.velocityY !== 1) {
+  if (upPressed && snake.isNewVelocityValid(0, -1)) {
     snake.velocityX = 0;
     snake.velocityY = -1;
   }
 
-  if (rightPressed && snake.velocityX !== -1) {
+  if (rightPressed && snake.isNewVelocityValid(1, 0)) {
     snake.velocityX = 1;
     snake.velocityY = 0;
   }
 
-  if (downPressed && snake.velocityY !== -1) {
+  if (downPressed && snake.isNewVelocityValid(0, 1)) {
     snake.velocityX = 0;
     snake.velocityY = 1;
   }
