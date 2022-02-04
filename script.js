@@ -25,7 +25,7 @@ const windowWidth = 480;
 
 // ====Código compartilhado
 // Estado geral
-let selectedGame = "Corona Invaders";
+let selectedGame = "Breakout";
 let isGameOver = false;
 let isGameWin = false;
 let isGameStarted = false;
@@ -665,8 +665,13 @@ const snakeGameLoop = () => {
 // Load assets
 let coronaSprite = new Image();
 let syringeSprite = new Image();
+let heartSprite = new Image();
 coronaSprite.src = "assets/coronga.png";
 syringeSprite.src = "assets/syringe.png";
+heartSprite.src = "assets/heart.png";
+
+// Corona constants
+const bulletVelocity = 3;
 
 // Corona class
 // Mantenha o distanciamento dessa classe e use máscara!
@@ -678,6 +683,9 @@ class Corona {
     this.coronaCount = [];
     this.width = 16;
     this.height = 16;
+    this.offsetX = 50;
+    this.velocityX = 0.2;
+    this.offsetY = 30;
 
     // Crio um array de covid, bem aglomerado do jeitinho q ele gosta
     for (let c = 0; c < this.columns; c++) {
@@ -694,8 +702,8 @@ class Corona {
     for (let c = 0; c < this.columns; c++) {
       for (let r = 0; r < this.rows; r++) {
         if (!this.coronas[c][r].destroyed) {
-          let coronaX = c * (this.width + 10) + 50;
-          let coronaY = r * (this.height + 10) + 30;
+          let coronaX = c * (this.width + 10) + this.offsetX;
+          let coronaY = r * (this.height + 10) + this.offsetY;
           this.coronas[c][r].x = coronaX;
           this.coronas[c][r].y = coronaY;
           ctx.drawImage(
@@ -709,6 +717,50 @@ class Corona {
       }
     }
   }
+
+  move() {
+    this.offsetX += this.velocityX;
+
+    if (this.offsetX < 0) this.velocityX *= -1;
+    if (this.offsetX > 100) this.velocityX *= -1;
+
+    // se não existir mais corongas, é game win baby
+    if (this.coronas.length === 0) {
+      isGameWin = true;
+    }
+  }
+
+  shoot() {
+    for (let c = 0; c < this.columns; c++) {
+      for (let r = 0; r < this.rows; r++) {
+        if (!this.coronas[c][r].destroyed) {
+          let coronaX = c * (this.width + 10) + this.offsetX;
+          let coronaY = r * (this.height + 10) + this.offsetY;
+          this.coronas[c][r].x = coronaX;
+          this.coronas[c][r].y = coronaY;
+          if (randomBetween(1, 100) > 95)
+            bullets.create(true, coronaX + 8, coronaY);
+        }
+      }
+    }
+  }
+}
+
+class Lifes {
+  constructor() {
+    this.lifes = 3;
+  }
+
+  draw() {
+    for (let i = 0; i < this.lifes; i++) {
+      ctx.drawImage(heartSprite, windowWidth - 65 + i * 20, 5, 16, 16);
+    }
+  }
+
+  lose() {
+    this.lifes -= 1;
+    if (this.lifes === 0) isGameOver = true;
+  }
 }
 
 // VACINE-SE, TOME A DOSE DE REFORÇO ASSIM QUE POSSIVEL
@@ -719,9 +771,10 @@ class Syringe {
     this.y = windowHeight - 42;
     this.height = 32;
     this.width = 32;
+    this.canShoot = true;
   }
 
-  // Desenha a vacina na tela
+  // Desenha a seringa na tela
   draw() {
     ctx.drawImage(syringeSprite, this.x, this.y, this.width, this.height);
   }
@@ -729,28 +782,149 @@ class Syringe {
   // Move para esquerda, sempre multiplicando pela delta time para
   // não haver diferença de velocidade com mudança de fps
   moveLeft() {
-    if (this.x > 0) this.x -= 5 * deltaTime;
+    if (this.x > 0) this.x -= 3 * deltaTime;
   }
 
   // Move para direita
   moveRight() {
-    if (this.x < windowWidth - this.width) this.x += 5 * deltaTime;
+    if (this.x < windowWidth - this.width) this.x += 3 * deltaTime;
+  }
+
+  // Atira vacina nos coronga
+  shoot() {
+    if (this.canShoot) {
+      bullets.create();
+      spacePressed = false;
+      this.canShoot = false;
+    }
+  }
+}
+
+// Classe para um tiro sozinho
+class Bullet {
+  // se for tiro do inimigo, posiciona numa coordenada passada por parametro
+  // se for tiro amigo posiciona em cima da seringa
+  constructor(isEnemy, x, y) {
+    if (isEnemy) {
+      this.x = x;
+      this.y = y;
+    } else {
+      this.x = syringe.x + 16;
+      this.y = syringe.y - 10;
+    }
+    this.width = 2;
+    this.height = 10;
+    this.isEnemy = isEnemy;
+    this.active = true;
+  }
+}
+
+class Bullets {
+  constructor() {
+    this.bullets = [];
+  }
+
+  // percorro as balas e as desenho em tela
+  draw() {
+    this.bullets.forEach((bullet) => {
+      ctx.beginPath();
+      ctx.rect(bullet.x, bullet.y, bullet.width, bullet.height);
+      ctx.fillStyle = primaryColor;
+      ctx.fill();
+      ctx.closePath();
+    });
+  }
+
+  // movo as balas de acordo com sua velocidade
+  move() {
+    this.bullets.forEach((bullet) => {
+      if (bullet.isEnemy) {
+        bullet.y += bulletVelocity * deltaTime;
+      } else {
+        bullet.y -= bulletVelocity * deltaTime;
+      }
+    });
+
+    this.checkOutOfBounds();
+    this.checkCollision();
+    this.removeInactives();
+  }
+
+  // funca para criar uma nova bala e adicionar ao array de balas
+  create(isEnemy, x, y) {
+    this.bullets.push(new Bullet(isEnemy, x, y));
+  }
+
+  // checo se a bala foi pra fora da tela, se for eu removo
+  checkOutOfBounds() {
+    this.bullets = this.bullets.map((b) =>
+      b.y > -10 && b.y < windowHeight ? b : { ...b, active: false }
+    );
+  }
+
+  // checo colisao com player e/ou corongas
+  checkCollision() {
+    this.bullets.forEach((bullet) => {
+      // Se for bala do inimigo checo a colisao com a seringa
+      if (bullet.isEnemy && bullet.active) {
+        if (bullet.x >= syringe.x + 8 && bullet.x <= syringe.x + 24) {
+          if (bullet.y > syringe.y) {
+            lifes.lose();
+            bullet.active = false;
+          }
+        }
+
+        // Se for bala do player, checo colisao com cada um dos corongas
+      } else if (bullet.active) {
+        // Que o professor Pedro perdoe essa complexidade cúbica
+        for (let c = 0; c < coronas.columns; c++) {
+          for (let r = 0; r < coronas.rows; r++) {
+            if (!coronas.coronas[c][r].destroyed) {
+              if (
+                bullet.x >= coronas.coronas[c][r].x &&
+                bullet.x <= coronas.coronas[c][r].x + 16
+              ) {
+                if (
+                  bullet.y <= coronas.coronas[c][r].y + 16 &&
+                  bullet.y <= coronas.coronas[c][r].y
+                ) {
+                  coronas.coronas[c][r].destroyed = true;
+                  score += 10;
+                  bullet.active = false;
+                }
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // Removo todas as balas inativas do array
+  removeInactives() {
+    this.bullets = this.bullets.filter((b) => b.active);
   }
 }
 
 // instancia objetos pro jogo
 let coronas = new Corona();
 let syringe = new Syringe();
+let bullets = new Bullets();
+let lifes = new Lifes();
+
+// guarda tempo passado p ver qnd pode atirar
+let timePassedCorona = 0;
 
 // codigo para reiniciar o jogo
 const restartCorona = () => {
   coronas = new Corona();
-  syringe = new syringe();
+  syringe = new Syringe();
   score = 0;
   spacePressed = false;
   isGameOver = false;
   isGameStarted = false;
   isGameWin = false;
+  lifes = new Lifes();
 };
 
 const coronaGameLoop = () => {
@@ -781,15 +955,30 @@ const coronaGameLoop = () => {
     }
 
     // se não, roda a lógica de jogo
+  } else if (!isGameStarted) {
+    write(
+      "Pressione espaço para começar",
+      canvas.width / 2,
+      canvas.height / 2 + 30,
+      12
+    );
+    coronas = new Corona();
+    coronas.draw();
+    syringe.draw();
+
+    if (spacePressed) {
+      isGameStarted = true;
+      lifes = new Lifes();
+      syringe = new Syringe();
+      spacePressed = false;
+    }
   } else {
-    if (!isGameStarted) {
-      write(
-        "Pressione espaço para começar",
-        canvas.width / 2,
-        canvas.height / 2 + 30,
-        12
-      );
-      coronas = new Corona();
+    timePassedCorona += deltaTime;
+
+    if (timePassedCorona > 50) {
+      syringe.canShoot = true;
+      timePassedCorona = 0;
+      coronas.shoot();
     }
 
     if (rightPressed) {
@@ -800,10 +989,15 @@ const coronaGameLoop = () => {
       syringe.moveLeft();
     }
 
-    if (isGameStarted) {
-      // TODO
+    if (spacePressed) {
+      syringe.shoot();
     }
 
+    bullets.move();
+    coronas.move();
+
+    lifes.draw();
+    bullets.draw();
     coronas.draw();
     syringe.draw();
   }
