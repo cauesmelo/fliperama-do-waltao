@@ -25,7 +25,7 @@ const windowWidth = 480;
 
 // ====Código compartilhado
 // Estado geral
-let selectedGame = "Breakout";
+let selectedGame = "TicTacToe";
 let isGameOver = false;
 let isGameWin = false;
 let isGameStarted = false;
@@ -85,6 +85,11 @@ let leftPressed = false;
 let upPressed = false;
 let downPressed = false;
 let spacePressed = false;
+let mouseClick = {
+  x: 0,
+  y: 0,
+  toBeHandled: false,
+};
 
 // Funções para tratar inputs
 const keyDownHandler = (e) => {
@@ -135,9 +140,18 @@ const keyUpHandler = (e) => {
   }
 };
 
+const clickHandler = (e) => {
+  mouseClick = {
+    x: e.layerX,
+    y: e.layerY,
+    toBeHandled: true,
+  };
+};
+
 // Cria listeners para os controles
 document.addEventListener("keydown", keyDownHandler, false);
 document.addEventListener("keyup", keyUpHandler, false);
+canvas.addEventListener("click", clickHandler, false);
 
 // Helper de RNG
 const randomBetween = (min, max) =>
@@ -1015,6 +1029,27 @@ const coronaGameLoop = () => {
 // =======PONG 360 CODE
 // =======TIC TAC TOE CODE
 
+class Board {
+  // TODO create board
+  constructor() {
+    this.board = [[]];
+  }
+}
+
+const drawTicScenario = () => {
+  ctx.beginPath();
+  ctx.strokeStyle = primaryColor;
+  ctx.rect(windowWidth / 3, 10, 2, windowHeight - 20);
+  ctx.rect((windowWidth / 3) * 2, 10, 2, windowHeight - 20);
+  ctx.rect(10, windowHeight / 3, windowWidth - 20, 2);
+  ctx.rect(10, (windowHeight / 3) * 2, windowWidth - 20, 2);
+  ctx.stroke();
+};
+
+const ticGameloop = () => {
+  drawTicScenario();
+};
+
 // ===Game loop
 const gameLoop = () => {
   // limpa tela e calcula delta time
@@ -1036,7 +1071,7 @@ const gameLoop = () => {
       // TODO
       break;
     case "TicTacToe":
-      // TODO
+      ticGameloop();
       break;
   }
 };
