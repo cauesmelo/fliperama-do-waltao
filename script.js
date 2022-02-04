@@ -640,6 +640,9 @@ let syringeSprite = new Image();
 coronaSprite.src = "assets/coronga.png";
 syringeSprite.src = "assets/syringe.png";
 
+// Corona constants
+const bulletVelocity = 3;
+
 // Corona class
 // Mantenha o distanciamento dessa classe e use máscara!
 class Corona {
@@ -691,6 +694,7 @@ class Syringe {
     this.y = windowHeight - 42;
     this.height = 32;
     this.width = 32;
+    this.canShoot = true;
   }
 
   // Desenha o Paddle na tela
@@ -701,18 +705,82 @@ class Syringe {
   // Move para esquerda, sempre multiplicando pela delta time para
   // não haver diferença de velocidade com mudança de fps
   moveLeft() {
-    if (this.x > 0) this.x -= 5 * deltaTime;
+    if (this.x > 0) this.x -= 3 * deltaTime;
   }
 
   // Move para direita
   moveRight() {
-    if (this.x < windowWidth - this.width) this.x += 5 * deltaTime;
+    if (this.x < windowWidth - this.width) this.x += 3 * deltaTime;
+  }
+
+  shoot() {
+    if (this.canShoot) {
+      bullets.create();
+      spacePressed = false;
+      this.canShoot = false;
+    }
+  }
+}
+
+// Classe para um tiro sozinho
+class Bullet {
+  constructor(isEnemy, x, y) {
+    if (isEnemy) {
+      this.x = x;
+      this.y = y;
+    } else {
+      this.x = syringe.x + 16;
+      this.y = syringe.y - 10;
+    }
+    this.width = 2;
+    this.height = 10;
+    this.isEnemy = isEnemy;
+  }
+}
+
+class Bullets {
+  constructor() {
+    this.bullets = [];
+  }
+
+  draw() {
+    this.bullets.forEach((bullet) => {
+      ctx.beginPath();
+      ctx.rect(bullet.x, bullet.y, bullet.width, bullet.height);
+      ctx.fillStyle = primaryColor;
+      ctx.fill();
+      ctx.closePath();
+    });
+  }
+
+  move() {
+    this.bullets.forEach((bullet) => {
+      if (bullet.isEnemy) {
+        bullet.y += bulletVelocity * deltaTime;
+      } else {
+        bullet.y -= bulletVelocity * deltaTime;
+      }
+    });
+
+    this.checkOutOfBounds();
+  }
+
+  create(isEnemy, x, y) {
+    this.bullets.push(new Bullet(isEnemy, x, y));
+  }
+
+  checkOutOfBounds() {
+    this.bullets = this.bullets.filter((b) => b.y > 0 && b.y < windowHeight);
   }
 }
 
 // instancia objetos pro jogo
 let coronas = new Corona();
 let syringe = new Syringe();
+let bullets = new Bullets();
+
+// guarda tempo passado p ver qnd pode atirar
+let timePassedCorona = 0;
 
 // codigo para reiniciar o jogo
 const restartCorona = () => {
@@ -753,15 +821,27 @@ const coronaGameLoop = () => {
     }
 
     // se não, roda a lógica de jogo
+  } else if (!isGameStarted) {
+    write(
+      "Pressione espaço para começar",
+      canvas.width / 2,
+      canvas.height / 2 + 30,
+      12
+    );
+    coronas = new Corona();
+    coronas.draw();
+    syringe.draw();
+
+    if (spacePressed) {
+      isGameStarted = true;
+      spacePressed = false;
+    }
   } else {
-    if (!isGameStarted) {
-      write(
-        "Pressione espaço para começar",
-        canvas.width / 2,
-        canvas.height / 2 + 30,
-        12
-      );
-      coronas = new Corona();
+    timePassedCorona += deltaTime;
+
+    if (timePassedCorona > 50) {
+      syringe.canShoot = true;
+      timePassedCorona = 0;
     }
 
     if (rightPressed) {
@@ -772,10 +852,12 @@ const coronaGameLoop = () => {
       syringe.moveLeft();
     }
 
-    if (isGameStarted) {
-      // TODO
+    if (spacePressed) {
+      syringe.shoot();
     }
 
+    bullets.draw();
+    bullets.move();
     coronas.draw();
     syringe.draw();
   }
