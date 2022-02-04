@@ -1,3 +1,22 @@
+// ========= PREFACIO ===========
+// O jogo funciona dentro de um loop eterno(função denominada gameLoop),
+// que executa, a limpeza de tela, lógica do jogo e desenho de todos os
+// elementos no jogo a cada 16.66 milisegundos, gerando um total de
+// aproximadamente 60frames por segundo.
+//
+// Nesse ciclo de vida de 1 frame o gameloop vai:
+// 1. Limpar a tela, ou seja, apaga tudo que estiver desenhado na tela
+// 2. Executar uma lógica de jogo, ou seja, se estiver selecionado "snake",
+//    ele checa se a cobra precisa ser movida, se sim, ajusta o x e y dela,
+//    checa as colisões, e realiza qualquer outro ajuste de variável necessária.
+// 3. Por fim, com as variáveis atualizadas, ele desenha todos os elementos na
+//    tela.
+//
+// O que foi feito aqui foram 5 jogos distintos, utilizando javascript puro,
+// utilizando o elemento HTML Canvas, a gente consegue desenhar elementos na
+// na tela, e com o setInterval conseguimos realizar a temporização do gameloop.
+// =============================
+
 // Constantes gerais
 const primaryColor = "#093d1a";
 const backgroundColor = "#000000";
@@ -21,11 +40,11 @@ const handleChangeGame = (game) => {
   isGameStarted = false;
   score = 0;
 
-  // Da blur nos botões html para evitar que o espaço ative eles novamente
+  // Da blur nos botões html para evitar que a tecla espaço ative eles novamente
   document.querySelectorAll("button").forEach((b) => b.blur());
 };
 
-// Pega canvas e contexto
+// Pega canvas, contexto e header de titulo
 const canvas = document.getElementById("gameCanvas");
 canvas.width = windowWidth;
 canvas.height = windowHeight;
@@ -163,7 +182,7 @@ class Ball {
     this.checkCollisionWithPaddle();
     this.checkCollisionWithBricks();
 
-    // aqui é caso bater nos limites da tela jogar a bolinha no lado oposto
+    // aqui é caso bater nos limites da tela, jogamos a bolinha no lado oposto
     if (this.x <= 0) {
       this.velocityX *= -1;
     }
@@ -258,7 +277,7 @@ class Paddle {
     this.width = 70;
   }
 
-  // Desenha o Paddle na tela
+  // Desenha a raquete na tela
   draw() {
     ctx.beginPath();
     ctx.rect(this.x, this.y, this.width, this.height);
@@ -279,7 +298,7 @@ class Paddle {
   }
 }
 
-// ===Classe de brick
+// ===Classe de bloquinhos
 class Bricks {
   constructor() {
     this.rows = 3;
@@ -289,7 +308,7 @@ class Bricks {
     this.bricks = [];
     this.brickCount = 15;
 
-    // cria um array de tijolos
+    // cria um array de bloquinhos
     for (let c = 0; c < this.columns; c++) {
       this.bricks[c] = [];
       for (let r = 0; r < this.rows; r++) {
@@ -299,7 +318,7 @@ class Bricks {
   }
 
   // função de desenho
-  // itera pelo array de tijolos desenhando eles na tela
+  // itera pelo array de bloquinhos e vai desenhando eles na tela
   draw() {
     for (let c = 0; c < this.columns; c++) {
       for (let r = 0; r < this.rows; r++) {
@@ -324,7 +343,7 @@ let ball = new Ball();
 let paddle = new Paddle();
 let bricks = new Bricks();
 
-// reiniciar o jogo
+// reinicia as variaveis do jogo
 const restartBreakout = () => {
   paddle = new Paddle();
   bricks = new Bricks();
@@ -491,6 +510,8 @@ class Snake {
     // checagem de colisao com o corpinho
     this.checkCollisionWithSelf();
 
+    // movemos cada parte do corpinho e guardamos a posição para saber
+    // onde devemos posicionar o próximo
     this.body.forEach((corpinho) => {
       let tempX = corpinho.x;
       let tempY = corpinho.y;
@@ -504,6 +525,8 @@ class Snake {
       };
     });
 
+    // Se a cobrinha precisar crescer, ou seja, comeu uma maçã
+    // adicionamos um corpinho na posição do rabinho
     if (this.hasToGrow) {
       this.body.push(tempCoordinates);
       this.hasToGrow = false;
@@ -605,6 +628,7 @@ const snakeGameLoop = () => {
   drawSnakeScenario();
   timePassed += deltaTime;
 
+  // se game over, monta tela de gameover
   if (isGameOver) {
     write("Você perdeu :(", canvas.width / 2, canvas.height / 2, 16);
     write(
@@ -616,12 +640,16 @@ const snakeGameLoop = () => {
     if (spacePressed) {
       restartSnake();
     }
+
+    // se game nao começou, monta tela de inicio de jogo
   } else if (!isGameStarted) {
     write("Pressione espaço para iniciar", canvas.width / 2, canvas.height / 2);
 
     if (spacePressed) {
       restartSnake();
     }
+
+    // se nao, eh game on baby
   } else {
     handleSnakeInput();
 
@@ -693,7 +721,7 @@ class Syringe {
     this.width = 32;
   }
 
-  // Desenha o Paddle na tela
+  // Desenha a vacina na tela
   draw() {
     ctx.drawImage(syringeSprite, this.x, this.y, this.width, this.height);
   }
