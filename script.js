@@ -1030,11 +1030,43 @@ const coronaGameLoop = () => {
 // =======TIC TAC TOE CODE
 
 class Board {
-  // TODO create board
   constructor() {
-    this.board = [[]];
+    this.board = [
+      [null, null, null],
+      [null, 2, null],
+      [null, null, null],
+    ];
+  }
+
+  draw() {
+    this.board.forEach((b) =>
+      b.forEach((i) => {
+        if (i) {
+          this.drawO(0, 0);
+        }
+      })
+    );
+  }
+
+  drawX(x, y) {
+    ctx.beginPath();
+    ctx.strokeStyle = primaryColor;
+    ctx.lineWidth = 2;
+    ctx.moveTo(windowWidth / 2.5, windowHeight / 2.5);
+    ctx.lineTo(windowWidth / 3, windowHeight / 3);
+    ctx.stroke();
+  }
+
+  drawO(x, y) {
+    ctx.beginPath();
+    ctx.arc(x, y, 50, 0, 2 * Math.PI);
+    ctx.lineWidth = 2;
+    ctx.stroke();
   }
 }
+
+// instancia objetos
+let board = new Board();
 
 const drawTicScenario = () => {
   ctx.beginPath();
@@ -1048,6 +1080,8 @@ const drawTicScenario = () => {
 
 const ticGameloop = () => {
   drawTicScenario();
+
+  board.draw();
 };
 
 // ===Game loop
