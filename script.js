@@ -819,6 +819,7 @@ class Bullet {
   }
 }
 
+// clase pra agrupar os tiros
 class Bullets {
   constructor() {
     this.bullets = [];
@@ -876,7 +877,7 @@ class Bullets {
 
         // Se for bala do player, checo colisao com cada um dos corongas
       } else if (bullet.active) {
-        // Que o professor Pedro perdoe essa complexidade cúbica
+        // Que Deus perdoe essa complexidade cúbica
         for (let c = 0; c < coronas.columns; c++) {
           for (let r = 0; r < coronas.rows; r++) {
             if (!coronas.coronas[c][r].destroyed) {
@@ -954,7 +955,7 @@ const coronaGameLoop = () => {
       restartCorona();
     }
 
-    // se não, roda a lógica de jogo
+    // se jogo não começou , mostra tela de começo
   } else if (!isGameStarted) {
     write(
       "Pressione espaço para começar",
@@ -972,15 +973,19 @@ const coronaGameLoop = () => {
       syringe = new Syringe();
       spacePressed = false;
     }
+
+    // se não, eh era do duelo
   } else {
     timePassedCorona += deltaTime;
 
+    // Se ja tiver passado 50 tempinhos, permite um novo tiro e atira corongas
     if (timePassedCorona > 50) {
       syringe.canShoot = true;
       timePassedCorona = 0;
       coronas.shoot();
     }
 
+    // funções de input
     if (rightPressed) {
       syringe.moveRight();
     }
@@ -993,9 +998,11 @@ const coronaGameLoop = () => {
       syringe.shoot();
     }
 
+    // movimentos
     bullets.move();
     coronas.move();
 
+    // desenhos
     lifes.draw();
     bullets.draw();
     coronas.draw();
