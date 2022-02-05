@@ -18,7 +18,7 @@
 // =============================
 
 // Constantes gerais
-const primaryColor = "#093d1a";
+const primaryColor = "#12ce5d";
 const backgroundColor = "#000000";
 const windowHeight = 320;
 const windowWidth = 480;
@@ -452,7 +452,6 @@ class Apple {
     ctx.fillStyle = primaryColor;
     ctx.fill();
     ctx.closePath();
-    console.log("123", this.x, this.y);
   }
 }
 
@@ -1028,46 +1027,251 @@ const coronaGameLoop = () => {
 
 // =======PONG 360 CODE
 // =======TIC TAC TOE CODE
-
+// classe do tabuleiro
 class Board {
   constructor() {
+    // array p representar o jogo
     this.board = [
       [null, null, null],
-      [null, 2, null],
+      [null, null, null],
       [null, null, null],
     ];
+
+    // variavel pra representar de quem eh a vez
+    this.isPlayerMove = true;
+    this.movesLeft = 9;
+    this.gameWinner;
   }
 
+  putX(x, y) {
+    // se espaco tiver disponivel, joga
+    if (this.board[x][y] === null) {
+      this.isPlayerMove = false;
+      this.board[x][y] = 1;
+      this.movesLeft -= 1;
+    }
+  }
+
+  // n faco verificacao pois esse eh do computador
+  putO(x, y) {
+    this.board[x][y] = 0;
+    this.movesLeft -= 1;
+    this.isPlayerMove = true;
+  }
+
+  // percorre o array e vai desenhando
   draw() {
-    this.board.forEach((b) =>
-      b.forEach((i) => {
-        if (i) {
-          this.drawO(0, 0);
+    this.board.forEach((b, indexX) =>
+      b.forEach((i, indexY) => {
+        if (i === 0) {
+          this.drawO(indexX, indexY);
+        } else if (i === 1) {
+          this.drawX(indexX, indexY);
         }
       })
     );
   }
 
+  // funcao basica de desenho
   drawX(x, y) {
-    ctx.beginPath();
-    ctx.strokeStyle = primaryColor;
-    ctx.lineWidth = 2;
-    ctx.moveTo(windowWidth / 2.5, windowHeight / 2.5);
-    ctx.lineTo(windowWidth / 3, windowHeight / 3);
-    ctx.stroke();
+    ctx.drawImage(
+      xSprite,
+      (x * windowWidth) / 3 + windowWidth / 3 / 2 - 64 / 2,
+      (y * windowHeight) / 3 + windowHeight / 3 / 2 - 64 / 2,
+      64,
+      64
+    );
   }
 
   drawO(x, y) {
-    ctx.beginPath();
-    ctx.arc(x, y, 50, 0, 2 * Math.PI);
-    ctx.lineWidth = 2;
-    ctx.stroke();
+    ctx.drawImage(
+      oSprite,
+      (x * windowWidth) / 3 + windowWidth / 3 / 2 - 64 / 2,
+      (y * windowHeight) / 3 + windowHeight / 3 / 2 - 64 / 2,
+      64,
+      64
+    );
+  }
+
+  // Método privado para verificar se três posições são iguais e não nulas
+  #equals3(a, b, c) {
+    return a !== null && a === b && b === c;
+  }
+
+  // metodo para verificar se chegou ao final do jogo
+  isGameOver() {
+    let winner = this.checkWinner();
+
+    if (winner === 1) {
+      this.gameWinner = 1;
+      isGameOver = true;
+    }
+
+    if (winner === 0) {
+      this.gameWinner = 0;
+      isGameOver = true;
+    }
+
+    if (winner === "draw") {
+      this.gameWinner = -1;
+      isGameOver = true;
+    }
+  }
+
+  // método para verificar quem ganhou
+  checkWinner() {
+    // verifica na horizontal
+    for (let i = 0; i < 3; i++) {
+      if (this.#equals3(this.board[i][0], this.board[i][1], this.board[i][2])) {
+        return this.board[i][0];
+      }
+    }
+
+    // Vertical
+    for (let i = 0; i < 3; i++) {
+      if (this.#equals3(this.board[0][i], this.board[1][i], this.board[2][i])) {
+        return this.board[0][i];
+      }
+    }
+
+    // Diagonal
+    if (this.#equals3(this.board[0][0], this.board[1][1], this.board[2][2])) {
+      return this.board[0][0];
+    }
+    if (this.#equals3(this.board[2][0], this.board[1][1], this.board[0][2])) {
+      return this.board[2][0];
+    }
+
+    // Se ngm ganho e não existem mais movimentos, eh empate
+    if (this.movesLeft === 0) {
+      return "draw";
+    }
+
+    // Se não for nada acima, jogo ainda ta rolando
+  }
+
+  // atribui um valor para cada possível outcome
+  #evaluate() {
+    // AI ganhando eh nota 10
+    if (this.checkWinner() === 0) return 10;
+    // Empatando o jogo eh nota 5
+    if (this.checkWinner() === "draw") return 5;
+    // Humano ganhando é nota 0
+    if (this.checkWinner() === 1) return 0;
+  }
+
+  // ALGORITMO DE MIN MAX
+  // Para uma explicação mais completa, consultar links abaixo
+  // https://www.geeksforgeeks.org/minimax-algorithm-in-game-theory-set-1-introduction/
+  // https://www.geeksforgeeks.org/minimax-algorithm-in-game-theory-set-3-tic-tac-toe-ai-finding-optimal-move/
+  #minimax(depth, isMax) {
+    // evaluamos a situação atual
+    let algScore = this.#evaluate();
+
+    // se tiver um valor definido, retornamos eles
+    if (algScore === 10 || algScore === 0 || algScore === 5) return algScore;
+
+    // se nao rodamos o algoritmo
+
+    // se tiver maximizando
+    if (isMax) {
+      let best = -Infinity;
+
+      // percorre o tabuleiro
+      for (let i = 0; i < 3; i++) {
+        for (let j = 0; j < 3; j++) {
+          // checa se posicao esta disponivel
+          if (this.board[i][j] === null) {
+            // joga
+            this.putO(i, j);
+
+            // chama funcao recursivamente e retorna o maior
+            best = Math.max(best, this.#minimax(depth + 1, !isMax));
+
+            // Undo the move
+            this.board[i][j] = null;
+            this.movesLeft += 1;
+          }
+        }
+      }
+      return best;
+    }
+
+    // se nao, estamos minimizando
+    else {
+      let best = Infinity;
+
+      // percorre tabuleiro
+      for (let i = 0; i < 3; i++) {
+        for (let j = 0; j < 3; j++) {
+          // checa se ta disponivel
+          if (this.board[i][j] === null) {
+            // movimenta
+            this.putX(i, j);
+
+            // chama funcao recursivamente e retorna o menor
+            best = Math.min(best, this.#minimax(depth + 1, !isMax));
+
+            // desfaz movimento
+            this.board[i][j] = null;
+            this.movesLeft += 1;
+          }
+        }
+      }
+      return best;
+    }
+  }
+
+  computerMove() {
+    if (!this.isPlayerMove && this.movesLeft) {
+      let bestVal = -Infinity;
+      let bestX;
+      let bestY;
+
+      // percorre todas as posicoes buscando um espaço vazio e calculando
+      // o resultado possivel para a jogada
+      // ao final ver qual a melhor jogada e a efetua
+      for (let i = 0; i < 3; i++) {
+        for (let j = 0; j < 3; j++) {
+          // verifica se ta vazio
+          if (this.board[i][j] === null) {
+            // joga
+            this.putO(i, j);
+
+            // verifica o valor da jogada como algoritmo minimax
+            let moveVal = this.#minimax(0, false);
+
+            // desfaz a jogada
+            this.board[i][j] = null;
+            this.movesLeft += 1;
+
+            // se o valor obtido for melhor, salva
+            if (moveVal > bestVal) {
+              bestX = i;
+              bestY = j;
+              bestVal = moveVal;
+            }
+          }
+        }
+      }
+
+      // ao final executa a melhor jogada possível
+      this.putO(bestX, bestY);
+      this.isGameOver();
+    }
   }
 }
+
+// load assets
+let xSprite = new Image();
+let oSprite = new Image();
+xSprite.src = "assets/x.png";
+oSprite.src = "assets/o.png";
 
 // instancia objetos
 let board = new Board();
 
+// funcoes para desenhar o cenario
 const drawTicScenario = () => {
   ctx.beginPath();
   ctx.strokeStyle = primaryColor;
@@ -1075,13 +1279,80 @@ const drawTicScenario = () => {
   ctx.rect((windowWidth / 3) * 2, 10, 2, windowHeight - 20);
   ctx.rect(10, windowHeight / 3, windowWidth - 20, 2);
   ctx.rect(10, (windowHeight / 3) * 2, windowWidth - 20, 2);
-  ctx.stroke();
+  ctx.fill();
 };
 
-const ticGameloop = () => {
-  drawTicScenario();
+// Função para lidar com o clique do mouse
+const handleClickTic = () => {
+  // se tem uma ação de clique para ser tratada, trata ela
+  if (mouseClick.toBeHandled && board.isPlayerMove) {
+    // posicionamos o X de acordo como clique do usuario
+    board.putX(
+      Math.floor((mouseClick.x / windowWidth) * 3),
+      Math.floor((mouseClick.y / 320) * 3)
+    );
+    mouseClick.toBeHandled = false;
 
-  board.draw();
+    // verificamos se chegou ao final do jogo
+    board.isGameOver();
+  }
+};
+
+// funcao para reiniciar o jogo
+const restartTic = () => {
+  board = new Board();
+  isGameOver = false;
+};
+
+// tratamento de clique enquanto fim de jogo
+const handleClickGameOver = () => {
+  if (mouseClick.toBeHandled) {
+    mouseClick.toBeHandled = false;
+    restartTic();
+  }
+};
+
+// loopo do jogo
+const ticGameloop = () => {
+  // se for fim de jogo
+  if (isGameOver) {
+    // É impossível a AI deixar o humano ganhar :)
+    if (board.gameWinner === 1) {
+      write("Você ganhou :)", windowWidth / 2, windowHeight / 2);
+    }
+
+    // Caso AI vença
+    if (board.gameWinner === 0) {
+      write("Você perdeu :(", windowWidth / 2, windowHeight / 2);
+    }
+
+    // Caso haja empate
+    if (board.gameWinner === -1) {
+      write("Empate!", windowWidth / 2, windowHeight / 2);
+    }
+
+    write(
+      "Clique na tela para jogar novamente",
+      windowWidth / 2,
+      windowHeight / 2 + 30,
+      12
+    );
+    handleClickGameOver();
+
+    // caso jogo esteja acontecendo
+  } else {
+    // desenha cenario
+    drawTicScenario();
+
+    // trata clique do mouse
+    handleClickTic();
+
+    // se for a vez do computador, faz ele jogar
+    if (!board.isPlayerMove) board.computerMove();
+
+    // desenha tabuleiro
+    board.draw();
+  }
 };
 
 // ===Game loop
