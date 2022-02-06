@@ -1,4 +1,11 @@
-// Ranking
+// ============Entregas para a tarefa
+// 1. Ranking remoto atualizado se forma automática
+// 2. Breakout
+// 3. Corona Invaders
+// 4. Snake
+// 5. Tic tac toe com inteligência artificial
+
+// ============= Ranking
 // pega elementos
 const introContainer = document.querySelector(".introContainer");
 const nameInput = document.querySelector("#nameInput");
@@ -11,9 +18,19 @@ const coronaRank = document.querySelector("#coronaRank");
 const breakoutRank = document.querySelector("#breakoutRank");
 const snakeRank = document.querySelector("#snakeRank");
 
+// Endpoints
+const endpoint = "https://api.npoint.io/1efd475f96a8b3f3f553";
+
+// guarda o username
 let userName;
+
+// guarda se ranking ja foi atualizado remotamente
+let rankSent = true;
+
+// guarda ranking atual
 let ranking;
 
+// sai da tela de nome para tela de jogo
 const startFliperama = () => {
   if (nameInput.value === "") {
     pleaseElement.style.opacity = "100";
@@ -24,14 +41,14 @@ const startFliperama = () => {
   }
 };
 
+// busca o ranking remoto e atualiza localmente
 const updateRanking = async () => {
-  ranking = await (
-    await fetch("https://api.npoint.io/1efd475f96a8b3f3f553")
-  ).json();
+  ranking = await (await fetch(endpoint)).json();
 };
 
+// publica um novo ranking remotamente
 const postRanking = async (updatedRank) => {
-  await fetch("https://api.npoint.io/1efd475f96a8b3f3f553", {
+  await fetch(endpoint, {
     method: "POST",
     headers: {
       Accept: "application/json",
@@ -43,24 +60,40 @@ const postRanking = async (updatedRank) => {
   ranking = updatedRank;
 };
 
+// função para abrir a tela de ranking
 const openRanking = async () => {
   contentContainer.style.display = "none";
   rankingContainer.style.display = "block";
 
   listOfRanking.style.display = "none";
   rankLoading.style.display = "block";
+
+  // atualiza os rankings
   await updateRanking();
 
+  // cria um array de ranking para iterar
   let ranks = [breakoutRank, snakeRank, coronaRank];
 
+  // para cada rank vai criando elementos em tela
   ranks.forEach((rank) => {
+    // zeramos o conteudo do elemento
     rank.innerHTML = "";
+
+    // criamos uma string pra ir guardando o html
     let rankDraft = "";
+
+    // o nome localmente ta "snakeRank", mas remotamente esta somente "snake"
+    // p resolver isso cortamos as 4 ultimas letras
     let rankName = rank.id.slice(0, -4);
 
-    ranking[rankName].forEach((i) => {
-      rankDraft += `<li>${i.position}. <span class="rankName">${i.name}</span> ${i.points}</li>`;
+    ranking[rankName].forEach((i, index) => {
+      // pra cada posicao vamos concatenando na string
+      rankDraft += `<li>${index + 1}. <span class="rankName">${i.name}</span> ${
+        i.points
+      }</li>`;
     });
+
+    // por ultimo pegamos esse html e colocamos no inner do elemento
     rank.innerHTML = rankDraft;
   });
 
@@ -68,7 +101,46 @@ const openRanking = async () => {
   listOfRanking.style.display = "block";
 };
 
-// ========= PREFACIO ===========
+// funcao a ser chamada ao final de cada jogo para verificarmos se o rank
+// deve ser atualizado e caso seja, montamos um novo objeto
+// e chamamos o metodo para postar novo rank
+const handleNewRank = async (rankName) => {
+  // atualiza ranking
+  await updateRanking();
+
+  // para saber se devemos subir novo rank ou não
+  let shouldRankBeUpdated = false;
+
+  // faz uma copia
+  const newRanking = ranking;
+
+  // se tiver menos que 5 entradas no ranking, insere no final
+  if (newRanking[rankName].length < 5) {
+    shouldRankBeUpdated = true;
+    newRanking[rankName].push({ name: userName, points: score });
+
+    // se existir algum rank com score menor, inserimos ao final
+  } else if (newRanking[rankName].some((rank) => rank.score <= score)) {
+    shouldRankBeUpdated = true;
+    newRanking[rankName].push({ name: userName, points: score });
+  }
+
+  // se o rank precisar ser atualizado
+  if (shouldRankBeUpdated) {
+    // ordenamos o ranking
+    newRanking[rankName].sort((a, b) => b.points - a.points);
+
+    // se tiver mais que 5 entradas, remove o ultimo
+    if (newRanking[rankName].length > 5) {
+      newRanking[rankName].pop();
+    }
+
+    // por fim, fazemos a requisição
+    postRanking(newRanking);
+  }
+};
+
+// ========= PREFACIO DOS JOGOS ===========
 // O jogo funciona dentro de um loop eterno(função denominada gameLoop),
 // que executa, a limpeza de tela, lógica do jogo e desenho de todos os
 // elementos no jogo a cada 16.66 milisegundos, gerando um total de
@@ -103,12 +175,14 @@ let score = 0;
 
 // Handler de game select
 const handleChangeGame = (game) => {
+  // basicamene zero as variaveis
   selectedGame = game;
   titleText.innerText = game;
   isGameOver = false;
   isGameWin = false;
   isGameStarted = false;
   score = 0;
+  mouseClick.toBeHandled = false;
   rankingContainer.style.display = "none";
   contentContainer.style.display = "block";
 
@@ -225,7 +299,7 @@ document.addEventListener("keydown", keyDownHandler, false);
 document.addEventListener("keyup", keyUpHandler, false);
 canvas.addEventListener("click", clickHandler, false);
 
-// Helper de RNG
+// Helpers de RNG
 const randomBetween = (min, max) =>
   Math.floor(Math.random() * (max - min + 1) + min);
 
@@ -444,6 +518,11 @@ const restartBreakout = () => {
 const breakoutGameLoop = () => {
   // se game over, moostra mensagem e da opcao para restartar
   if (isGameOver) {
+    // atualiza rank remotamente
+    if (rankSent === false) {
+      handleNewRank("breakout");
+      rankSent = true;
+    }
     write("Você perdeu :(", canvas.width / 2, canvas.height / 2, 16);
     write(
       "Pressione espaço para reiniciar",
@@ -457,6 +536,11 @@ const breakoutGameLoop = () => {
 
     // se game win, mostra mensagem e da opção para restartar
   } else if (isGameWin) {
+    // atualiza rank remotamente
+    if (rankSent === false) {
+      handleNewRank("breakout");
+      rankSent = true;
+    }
     write("Você ganhou! :D", canvas.width / 2, canvas.height / 2, 16);
     write(
       "Pressione espaço para jogar novamente",
@@ -706,6 +790,7 @@ const restartSnake = () => {
   isGameOver = false;
   isGameStarted = true;
   isGameWin = false;
+  rankSent = false;
 };
 
 // loop do jogo da cobrinha
@@ -715,6 +800,11 @@ const snakeGameLoop = () => {
 
   // se game over, monta tela de gameover
   if (isGameOver) {
+    if (rankSent === false) {
+      handleNewRank("snake");
+      rankSent = true;
+    }
+
     write("Você perdeu :(", canvas.width / 2, canvas.height / 2, 16);
     write(
       "Pressione espaço para reiniciar",
@@ -765,7 +855,7 @@ class Corona {
     this.rows = 4;
     this.columns = 15;
     this.coronas = [];
-    this.coronaCount = [];
+    this.coronaCount = 4 * 15;
     this.width = 16;
     this.height = 16;
     this.offsetX = 50;
@@ -803,9 +893,13 @@ class Corona {
     }
   }
 
+  // funcao de movimento
   move() {
+    // vou modificando a posição dele conforme a velocidade
     this.offsetX += this.velocityX;
 
+    // aqui basicamente vou jogando ele de um lado pro outro
+    // conforme ele bate nos limites
     if (this.offsetX < 0) this.velocityX *= -1;
     if (this.offsetX > 100) this.velocityX *= -1;
 
@@ -815,6 +909,7 @@ class Corona {
     }
   }
 
+  // funcao pra atirar
   shoot() {
     for (let c = 0; c < this.columns; c++) {
       for (let r = 0; r < this.rows; r++) {
@@ -823,6 +918,8 @@ class Corona {
           let coronaY = r * (this.height + 10) + this.offsetY;
           this.coronas[c][r].x = coronaX;
           this.coronas[c][r].y = coronaY;
+          // basicamente percorro os corongas e sorteio aleatoriamente
+          // se cada um deve atirar ou nao
           if (randomBetween(1, 100) > 95)
             bullets.create(true, coronaX + 8, coronaY);
         }
@@ -831,6 +928,7 @@ class Corona {
   }
 }
 
+// classe pra guardar as vidas, coisa boba
 class Lifes {
   constructor() {
     this.lifes = 3;
@@ -977,6 +1075,9 @@ class Bullets {
                   coronas.coronas[c][r].destroyed = true;
                   score += 10;
                   bullet.active = false;
+                  coronas.coronaCount -= 1;
+
+                  if (coronas.coronaCount === 0) isGameWin = true;
                 }
               }
             }
@@ -1016,6 +1117,11 @@ const restartCorona = () => {
 const coronaGameLoop = () => {
   // se game over, moostra mensagem e da opcao para restartar
   if (isGameOver) {
+    // Chama metodo para atualizar rank remotamente
+    if (rankSent === false) {
+      handleNewRank("corona");
+      rankSent = true;
+    }
     write("Você perdeu :(", canvas.width / 2, canvas.height / 2, 16);
     write(
       "Pressione espaço para reiniciar",
@@ -1029,6 +1135,11 @@ const coronaGameLoop = () => {
 
     // se game win, mostra mensagem e da opção para restartar
   } else if (isGameWin) {
+    // Chama metodo para atualizar rank remotamente
+    if (rankSent === false) {
+      handleNewRank("corona");
+      rankSent = true;
+    }
     write("Você ganhou! :D", canvas.width / 2, canvas.height / 2, 16);
     write(
       "Pressione espaço para jogar novamente",
@@ -1097,7 +1208,6 @@ const coronaGameLoop = () => {
   writeLeft("Score:" + score, 10, 20, 12);
 };
 
-// =======PONG 360 CODE
 // =======TIC TAC TOE CODE
 // classe do tabuleiro
 class Board {
@@ -1222,7 +1332,7 @@ class Board {
     // Se não for nada acima, jogo ainda ta rolando
   }
 
-  // atribui um valor para cada possível outcome
+  // atribui um valor para cada possível resultado
   #evaluate() {
     // AI ganhando eh nota 10
     if (this.checkWinner() === 0) return 10;
@@ -1232,7 +1342,7 @@ class Board {
     if (this.checkWinner() === 1) return 0;
   }
 
-  // ALGORITMO DE MIN MAX
+  // ALGORITMO DE MINIMAX
   // Para uma explicação mais completa, consultar links abaixo
   // https://www.geeksforgeeks.org/minimax-algorithm-in-game-theory-set-1-introduction/
   // https://www.geeksforgeeks.org/minimax-algorithm-in-game-theory-set-3-tic-tac-toe-ai-finding-optimal-move/
@@ -1356,7 +1466,9 @@ const drawTicScenario = () => {
 
 // Função para lidar com o clique do mouse
 const handleClickTic = () => {
-  // se tem uma ação de clique para ser tratada, trata ela
+  // se tem uma ação de clique para ser tratada,
+  // e for a vez do player
+  // trata o clique do mouse
   if (mouseClick.toBeHandled && board.isPlayerMove) {
     // posicionamos o X de acordo como clique do usuario
     board.putX(
