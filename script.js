@@ -1,3 +1,73 @@
+// Ranking
+// pega elementos
+const introContainer = document.querySelector(".introContainer");
+const nameInput = document.querySelector("#nameInput");
+const contentContainer = document.querySelector(".contentContainer");
+const rankingContainer = document.querySelector(".rankingContainer");
+const pleaseElement = document.querySelector("#please");
+const listOfRanking = document.querySelector(".listOfRanking");
+const rankLoading = document.querySelector(".rankLoading");
+const coronaRank = document.querySelector("#coronaRank");
+const breakoutRank = document.querySelector("#breakoutRank");
+const snakeRank = document.querySelector("#snakeRank");
+
+let userName;
+let ranking;
+
+const startFliperama = () => {
+  if (nameInput.value === "") {
+    pleaseElement.style.opacity = "100";
+  } else {
+    userName = nameInput.value;
+    introContainer.style.display = "none";
+    contentContainer.style.display = "block";
+  }
+};
+
+const updateRanking = async () => {
+  ranking = await (
+    await fetch("https://api.npoint.io/1efd475f96a8b3f3f553")
+  ).json();
+};
+
+const postRanking = async (updatedRank) => {
+  await fetch("https://api.npoint.io/1efd475f96a8b3f3f553", {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(updatedRank),
+  });
+
+  ranking = updatedRank;
+};
+
+const openRanking = async () => {
+  contentContainer.style.display = "none";
+  rankingContainer.style.display = "block";
+
+  listOfRanking.style.display = "none";
+  rankLoading.style.display = "block";
+  await updateRanking();
+
+  let ranks = [breakoutRank, snakeRank, coronaRank];
+
+  ranks.forEach((rank) => {
+    rank.innerHTML = "";
+    let rankDraft = "";
+    let rankName = rank.id.slice(0, -4);
+
+    ranking[rankName].forEach((i) => {
+      rankDraft += `<li>${i.position}. <span class="rankName">${i.name}</span> ${i.points}</li>`;
+    });
+    rank.innerHTML = rankDraft;
+  });
+
+  rankLoading.style.display = "none";
+  listOfRanking.style.display = "block";
+};
+
 // ========= PREFACIO ===========
 // O jogo funciona dentro de um loop eterno(função denominada gameLoop),
 // que executa, a limpeza de tela, lógica do jogo e desenho de todos os
@@ -25,7 +95,7 @@ const windowWidth = 480;
 
 // ====Código compartilhado
 // Estado geral
-let selectedGame = "TicTacToe";
+let selectedGame = "Breakout";
 let isGameOver = false;
 let isGameWin = false;
 let isGameStarted = false;
@@ -39,6 +109,8 @@ const handleChangeGame = (game) => {
   isGameWin = false;
   isGameStarted = false;
   score = 0;
+  rankingContainer.style.display = "none";
+  contentContainer.style.display = "block";
 
   // Da blur nos botões html para evitar que a tecla espaço ative eles novamente
   document.querySelectorAll("button").forEach((b) => b.blur());
@@ -1371,9 +1443,6 @@ const gameLoop = () => {
       break;
     case "Snake":
       snakeGameLoop();
-      break;
-    case "Pong 360":
-      // TODO
       break;
     case "TicTacToe":
       ticGameloop();

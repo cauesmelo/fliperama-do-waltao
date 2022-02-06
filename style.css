@@ -140,3 +140,67 @@ h2 {
   top: 5px;
   left: 5px;
 }
+
+.contentContainer {
+  display: none;
+}
+
+.introContainer {
+  display: flex;
+  flex-direction: column;
+  margin-top: 2rem;
+}
+
+.introContainer > input {
+  margin: 0.5rem 0.5rem 0.5rem;
+
+  border: 3px solid black;
+  font-family: "Press Start 2P", cursive;
+  padding: 0.5rem;
+}
+
+#please {
+  opacity: 0;
+  font-size: 0.8rem;
+  text-align: center;
+  margin-bottom: 1rem;
+  transition: 0.3s all;
+}
+
+.gameContainer {
+  background-color: transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+}
+
+canvas {
+  background-color: black;
+}
+
+.rankingContainer {
+  display: none;
+}
+
+.rankingContainer h2 {
+  margin-top: 2rem;
+}
+
+.rankingContainer ul {
+  margin-top: 0.5rem;
+}
+
+.rankingContainer ul li {
+  display: flex;
+  margin-bottom: 0.4rem;
+}
+
+.rankingContainer ul li .rankName {
+  flex: 1;
+}
+
+.rankLoading {
+  margin-top: 2rem;
+}
