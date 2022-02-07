@@ -25,7 +25,7 @@ const endpoint = "https://api.npoint.io/1efd475f96a8b3f3f553";
 let userName;
 
 // guarda se ranking ja foi atualizado remotamente
-let rankSent = true;
+let rankSent = false;
 
 // guarda ranking atual
 let ranking;
@@ -512,6 +512,7 @@ const restartBreakout = () => {
   isGameOver = false;
   isGameStarted = false;
   isGameWin = false;
+  rankSent = false;
 };
 
 // Gameloop do breakout
@@ -1111,6 +1112,7 @@ const restartCorona = () => {
   isGameOver = false;
   isGameStarted = false;
   isGameWin = false;
+  rankSent = false;
   lifes = new Lifes();
 };
 
